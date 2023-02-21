@@ -16,9 +16,25 @@ func TestReads_ExecutesTheInputsAsCommands(t *testing.T) {
 	shellspy.Reads(reader, &out)
 
 	got := out.String()
-	want := "hi!\n"
+	want := "$ hi!\n$ "
 
 	if got != want {
+		// With %q it shows the string with quotes
+		t.Fatalf("Want: %q\nGot: %q", want, got)
+	}
+}
+
+func TestReads_DoesNotExitOnError(t *testing.T) {
+	reader := strings.NewReader("commandNotFound\necho hi!")
+
+	out := bytes.Buffer{}
+	shellspy.Reads(reader, &out)
+
+	got := out.String()
+	want := "\nhi!\n"
+
+	// `hi!` needs to be at the end.
+	if !strings.HasSuffix(got, want) {
 		// With %q it shows the string with quotes
 		t.Fatalf("Want: %q\nGot: %q", want, got)
 	}
