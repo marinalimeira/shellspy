@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"github.com/google/go-cmp/cmp"
 	"github.com/marinalimeira/shellspy"
-	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -16,7 +16,7 @@ func TestReads_ExecutesTheInputsAsCommands(t *testing.T) {
 	shellspy.Reads(reader, &out)
 
 	got := out.String()
-	want := "hi!"
+	want := "hi!\n"
 
 	if got != want {
 		// With %q it shows the string with quotes
@@ -39,25 +39,39 @@ func TestReads_IgnoresWhenItsEmpty(t *testing.T) {
 	}
 }
 
+func TestReads_FinishesOnExit(t *testing.T) {
+	// TODO
+
+}
+
 func TestCommandFromString_ReturnsCommandObjectFromInputLine(t *testing.T) {
 	// Given a string,
 	// It will return the command to be executed, and it's args.
 
 	testCase := []struct {
-		input string
-		want  []string
+		input    string
+		want     []string
+		basePath string
 	}{
 		{
-			input: "echo hi!",
-			want:  []string{"echo", "hi!"},
+			input:    "echo hi!",
+			want:     []string{"echo", "hi!"},
+			basePath: "echo",
 		},
 		{
-			input: "echo",
-			want:  []string{"echo"},
+			input:    "echo",
+			want:     []string{"echo"},
+			basePath: "echo",
 		},
 		{
-			input: "abc",
-			want:  []string{"abc"},
+			input:    "abc",
+			want:     []string{"abc"},
+			basePath: "abc",
+		},
+		{
+			input:    "",
+			want:     []string{""},
+			basePath: ".",
 		},
 	}
 
@@ -68,6 +82,10 @@ func TestCommandFromString_ReturnsCommandObjectFromInputLine(t *testing.T) {
 
 		if !cmp.Equal(test.want, got.Args) {
 			t.Errorf("Input: %q\nDiff: %s", test.input, cmp.Diff(test.want, got.Args))
+		}
+
+		if filepath.Base(got.Path) != test.basePath {
+			t.Errorf("Path should end with %q. Got: %q\nFull path: %q", test.basePath, filepath.Base(got.Path), got.Path)
 		}
 	}
 }
@@ -80,14 +98,25 @@ func TestExecCommand_RunsAndReturnsTheOutputGivenOfCommand(t *testing.T) {
 	// Entity.
 	// Read-only.
 	//
-	command := exec.Command("echo", "hi!")
+	//command := exec.Command("echo", "hi!")
+	//
+	input := "echo hi!"
+	command := shellspy.CommandFromString(input)
+
+	expectedBasePath := "echo"
+	if filepath.Base(command.Path) != expectedBasePath {
+		t.Errorf("Path should end with %q. Got full path %q", expectedBasePath, command.Path)
+	}
 
 	// 3. Start from middle
-	got := shellspy.ExecCommand(command)
+	got, err := shellspy.ExecCommand(command)
+	if err != nil {
+		t.Error(err)
+	}
 
-	want := "hi!"
+	want := "hi!\n"
 
 	if got != want {
-		t.Errorf("Input: \"echo hi!\"\n Diff: %s", cmp.Diff(want, got))
+		t.Errorf("Input: %q\n Diff: %s", input, cmp.Diff(want, got))
 	}
 }

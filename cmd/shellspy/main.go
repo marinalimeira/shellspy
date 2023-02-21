@@ -1,7 +1,12 @@
 package main
 
+import (
+	"github.com/marinalimeira/shellspy"
+	"os"
+)
+
 // Your CLI goes here!
 
 func main() {
-	//reads(os.Stdin)
+	shellspy.Reads(os.Stdin, os.Stdout)
 }
